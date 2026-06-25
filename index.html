@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Variance Vibes — Harvest</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --surface2: #f1efe8;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.2);
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --blue: #185fa5;
+    --blue-bg: #e6f1fb;
+    --green: #3b6d11;
+    --green-bg: #eaf3de;
+    --amber: #854f0b;
+    --amber-bg: #faeeda;
+    --red: #a32d2d;
+    --red-bg: #fcebeb;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --surface: #2c2c2a;
+      --surface2: #3a3a38;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+      --text: #f1efe8;
+      --text2: #b4b2a9;
+      --text3: #888780;
+      --blue: #b5d4f4;
+      --blue-bg: #0c447c;
+      --green: #c0dd97;
+      --green-bg: #27500a;
+      --amber: #fac775;
+      --amber-bg: #633806;
+      --red: #f7c1c1;
+      --red-bg: #791f1f;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+  header h1 { font-size: 16px; font-weight: 500; }
+  header .subtitle { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .header-left { display: flex; align-items: center; gap: 20px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+  /* Auth screen */
+  #auth-screen {
+    max-width: 480px;
+    margin: 80px auto;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+  }
+  #auth-screen h2 { font-size: 18px; font-weight: 500; margin-bottom: 8px; }
+  #auth-screen p { color: var(--text2); margin-bottom: 24px; font-size: 13px; line-height: 1.6; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+  .form-group input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    font-family: monospace;
+  }
+  .form-group input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,0.15); }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary {
+    background: var(--text);
+    color: var(--bg);
+    border-color: transparent;
+  }
+  .btn-primary:hover { opacity: 0.85; }
+  .help-link { font-size: 12px; color: var(--text3); margin-top: 16px; }
+  .help-link a { color: var(--blue); }
+
+  /* Filters */
+  .filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filters select, .filters input[type="week"] {
+    padding: 7px 12px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .filter-label { font-size: 13px; color: var(--text2); }
+
+  /* Metric cards */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .metric-card {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .metric-label { font-size: 12px; color: var(--text3); margin-bottom: 4px; }
+  .metric-value { font-size: 24px; font-weight: 500; }
+  .metric-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  /* Table */
+  .table-wrap {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .table-header {
+    padding: 14px 16px;
+    border-bottom: 0.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .table-header h3 { font-size: 14px; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text3);
+    border-bottom: 0.5px solid var(--border);
+    white-space: nowrap;
+  }
+  th.num { text-align: right; }
+  td {
+    padding: 10px 16px;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 13px;
+  }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .project-name { font-weight: 500; }
+  .member-name { color: var(--text2); padding-left: 28px; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge-over { background: var(--red-bg); color: var(--red); }
+  .badge-under { background: var(--green-bg); color: var(--green); }
+  .badge-ok { background: var(--amber-bg); color: var(--amber); }
+
+  /* Progress bar */
+  .bar-wrap {
+    width: 100px;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .bar-green { background: #639922; }
+  .bar-amber { background: #ba7517; }
+  .bar-red { background: #e24b4a; }
+
+  /* Chart section */
+  .chart-section {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .chart-section h3 { font-size: 14px; font-weight: 500; margin-bottom: 16px; }
+
+  /* Loading / error */
+  .state-box {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text3);
+  }
+  .state-box .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--text);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-msg {
+    background: var(--red-bg);
+    color: var(--red);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  /* Week nav */
+  .week-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .week-nav button {
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    width: 30px; height: 30px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .week-nav button:hover { background: var(--surface2); }
+  .week-label { font-size: 13px; color: var(--text2); min-width: 120px; text-align: center; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+
+  .section-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+  }
+  .tab {
+    padding: 7px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    cursor: pointer;
+    border: 0.5px solid transparent;
+    background: transparent;
+    color: var(--text2);
+    font-family: inherit;
+  }
+  .tab.active {
+    background: var(--surface);
+    border-color: var(--border2);
+    color: var(--text);
+    font-weight: 500;
+  }
+  .tab:hover:not(.active) { background: var(--surface2); }
+
+  .logout-link {
+    font-size: 12px;
+    color: var(--text3);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 4px 8px;
+    border-radius: var(--radius);
+  }
+  .logout-link:hover { background: var(--surface2); }
+  #last-updated { font-size: 11px; color: var(--text3); }
+</style>
+</head>
+<body>
+
+<div id="auth-screen" style="display:none">
+  <h2>Connect to Harvest &amp; Forecast</h2>
+  <p>Enter your credentials below. Everything is stored locally in your browser only — nothing is sent anywhere else.</p>
+
+  <div style="background:var(--surface2);border-radius:var(--radius);padding:14px 16px;margin-bottom:20px;font-size:13px;line-height:1.7">
+    <strong style="font-size:13px">How to get your Personal Access Token</strong>
+    <ol style="margin:8px 0 0 16px;color:var(--text2)">
+      <li>Go to <a href="https://id.getharvest.com/developers" target="_blank" rel="noopener">id.getharvest.com/developers</a> and sign in</li>
+      <li>Under <em>Personal Access Tokens</em>, click <strong style="font-weight:500">Create new personal access token</strong></li>
+      <li>Give it any name (e.g. "Hours Tracker") and click <strong style="font-weight:500">Create</strong></li>
+      <li>Copy the token — it only displays once</li>
+      <li>Your <strong style="font-weight:500">Harvest Account ID</strong> is shown on that same page under <em>Your active accounts</em></li>
+      <li>Your <strong style="font-weight:500">Forecast Account ID</strong> is found at <a href="https://forecastapp.com/settings" target="_blank" rel="noopener">forecastapp.com/settings</a> under <em>Integrations</em>, or in the URL when logged in (e.g. forecastapp.com/<strong style="font-weight:500">123456</strong>/settings)</li>
+    </ol>
+  </div>
+
+  <div id="auth-error" class="error-msg" style="display:none"></div>
+  <div class="form-group">
+    <label>Personal Access Token</label>
+    <input type="password" id="token-input" placeholder="xxxxxxxx.harvest.xxxxxxxx..." autocomplete="off">
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="form-group">
+      <label>Harvest Account ID</label>
+      <input type="text" id="account-input" value="369842" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Forecast Account ID</label>
+      <input type="text" id="forecast-account-input" value="554085" autocomplete="off">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Harvest Project ID <span style="color:var(--text3);font-weight:400">(optional — leave blank for all projects)</span></label>
+    <input type="text" id="project-id-input" placeholder="e.g. 12345678" autocomplete="off">
+  </div>
+  <button class="btn btn-primary" onclick="connectHarvest()" style="width:100%; justify-content:center;">Connect</button>
+</div>
+
+<header id="app-header" style="display:none">
+  <div class="header-left">
+    <div>
+      <h1>Variance Vibes</h1>
+      <div class="subtitle" id="account-name">Harvest</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="last-updated"></span>
+    <button class="btn" onclick="refreshData()" id="refresh-btn">↻ Refresh</button>
+    <button class="logout-link" onclick="logout()">Sign out</button>
+  </div>
+</header>
+
+<main id="app-main" style="display:none">
+
+  <div class="filters">
+    <div class="week-nav">
+      <button onclick="shiftWeek(-1)">‹</button>
+      <span class="week-label" id="week-label">Loading...</span>
+      <button onclick="shiftWeek(1)">›</button>
+    </div>
+    <select id="project-filter" onchange="render()">
+      <option value="">All projects</option>
+    </select>
+    <select id="member-filter" onchange="render()">
+      <option value="">All members</option>
+    </select>
+    <div style="margin-left:auto; display:flex; gap:8px;">
+      <div class="section-tabs">
+        <button class="tab active" id="tab-week" onclick="setView('week')">Prior week</button>
+        <button class="tab" id="tab-all" onclick="setView('all')">All time</button>
+        <button class="tab" id="tab-burndown" onclick="setView('burndown')">Burndown</button>
+        <button class="tab" id="tab-whatif" onclick="setView('whatif')">What-if</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="missing-hours-banner" style="display:none;background:var(--red-bg);color:var(--red);border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:12px;line-height:1.6"></div>
+  <div id="timeoff-banner" style="display:none;background:var(--amber-bg);color:var(--amber);border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:16px;line-height:1.6"></div>
+
+  <div id="loading-state" class="state-box" style="display:none">
+    <div class="spinner"></div>
+    <div>Fetching data from Harvest...</div>
+  </div>
+
+  <div id="error-state" class="error-msg" style="display:none"></div>
+
+  <div id="whatif-panel" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-header"><h3>Project</h3></div>
+        <div style="padding:14px 16px">
+          <select id="wi-project" onchange="renderWhatIf()" style="width:100%;padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:13px;font-family:inherit">
+            <option value="">Select a project...</option>
+          </select>
+          <div id="wi-budget-wrap" style="display:none;margin-top:12px;display:flex;align-items:center;gap:8px">
+            <label style="font-size:13px;color:var(--text3)">Total budget (hours):</label>
+            <input id="wi-budget" type="number" min="0" placeholder="Enter hours"
+              style="width:100px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text1);font-size:13px"
+              onkeydown="if(event.key==='Enter')saveWhatIfBudget(this.value)">
+            <button onclick="saveWhatIfBudget(document.getElementById('wi-budget').value)"
+              style="padding:4px 12px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px">Save</button>
+          </div>
+          <div id="wi-stats" style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+          <div id="wi-enddate-wrap" style="display:none;margin-top:12px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:13px;color:var(--text3)">Project end date:</label>
+              <input id="wi-enddate" type="date" onchange="saveWhatIfEndDate(this.value)"
+                style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text1);font-size:13px">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-header">
+          <h3>Talent</h3>
+          <div style="display:flex;gap:6px">
+            <button class="btn" onclick="addResource()" style="font-size:12px;padding:5px 10px">+ Add talent</button>
+            <button class="btn" onclick="addRemoval()" style="font-size:12px;padding:5px 10px;background:var(--red,#e24b4a);color:#fff;border-color:transparent">− Remove talent</button>
+          </div>
+        </div>
+        <div id="wi-resources" style="padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:13px;color:var(--text3);padding:8px 0">Add or remove talent to model budget impact.</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-section" style="margin-bottom:20px">
+      <h3 id="wi-chart-title">Projected burndown</h3>
+      <div id="wi-result" style="margin-bottom:12px;font-size:13px"></div>
+      <div style="position:relative;height:260px">
+        <canvas id="wi-chart" role="img" aria-label="Projected burndown chart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="dashboard">
+    <div class="metrics" id="metrics-row"></div>
+    <div id="runout-banner"></div>
+    <div id="chart-area"></div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3 id="table-title">By project &amp; team member</h3>
+        <span id="row-count" style="font-size:12px; color:var(--text3)"></span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:35%">Project / Member</th>
+            <th class="num">Forecasted</th>
+            <th class="num">Submitted</th>
+            <th class="num">Variance</th>
+            <th class="num">Burndown</th>
+            <th class="num" style="width:120px">Progress</th>
+          </tr>
+        </thead>
+        <tbody id="data-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const API = 'https://api.harvestapp.com/v2';
+const FORECAST_API = 'https://api.forecastapp.com';
+let state = {
+  token: '',
+  accountId: '',
+  forecastAccountId: '',
+  projects: [],
+  users: [],
+  assignments: [],
+  timeEntries: [],
+  forecastProjects: [],
+  forecastPeople: [],
+  forecastAssignments: [],
+  currentWeekOffset: -1,
+  view: 'week',
+};
+
+function getMonday(d) {
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+}
+function formatDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function weekRange(offset) {
+  const now = new Date();
+  now.setDate(now.getDate() + offset * 7);
+  const mon = getMonday(new Date(now));
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  return { from: formatDate(mon), to: formatDate(sun), label: formatWeekLabel(mon, sun) };
+}
+function formatWeekLabel(mon, sun) {
+  const opts = { month: 'short', day: 'numeric' };
+  if (mon.getMonth() === sun.getMonth())
+    return `${mon.toLocaleDateString('en-US', { month: 'short' })} ${mon.getDate()}–${sun.getDate()}`;
+  return `${mon.toLocaleDateString('en-US', opts)} – ${sun.toLocaleDateString('en-US', opts)}`;
+}
+
+async function harvestFetch(path) {
+  const res = await fetch(`${API}${path}`, {
+    headers: {
+      'Authorization': `Bearer ${state.token}`,
+      'Harvest-Account-Id': state.accountId,
+      'User-Agent': 'HoursTracker/1.0',
+    }
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`Harvest API ${res.status}: ${txt || res.statusText}`);
+  }
+  return res.json();
+}
+
+async function forecastFetch(path) {
+  const res = await fetch(`${FORECAST_API}${path}`, {
+    headers: {
+      'Authorization': `Bearer ${state.token}`,
+      'Forecast-Account-ID': state.forecastAccountId,
+      'User-Agent': 'HoursTracker/1.0',
+    }
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`Forecast API ${res.status}: ${txt || res.statusText}`);
+  }
+  return res.json();
+}
+
+async function fetchAll(path, key, params = '') {
+  let page = 1, items = [];
+  while (true) {
+    const sep = params ? '&' : '?';
+    const data = await harvestFetch(`${path}${params}${sep}page=${page}&per_page=100`);
+    items = items.concat(data[key]);
+    if (data.next_page == null) break;
+    page++;
+  }
+  return items;
+}
+
+async function connectHarvest() {
+  const token = document.getElementById('token-input').value.trim();
+  const accountId = document.getElementById('account-input').value.trim();
+  const forecastAccountId = document.getElementById('forecast-account-input').value.trim();
+  const projectId = document.getElementById('project-id-input').value.trim();
+  if (!token || !accountId || !forecastAccountId) {
+    showAuthError('Please enter your token, Harvest Account ID, and Forecast Account ID.');
+    return;
+  }
+  state.token = token;
+  state.accountId = accountId;
+  state.forecastAccountId = forecastAccountId;
+  state.filterProjectId = projectId || null;
+  document.getElementById('auth-error').style.display = 'none';
+  try {
+    const me = await harvestFetch('/users/me');
+    localStorage.setItem('harvest_token', token);
+    localStorage.setItem('harvest_account', accountId);
+    localStorage.setItem('harvest_forecast_account', forecastAccountId);
+    localStorage.setItem('harvest_project_id', projectId);
+    localStorage.setItem('harvest_name', me.first_name + ' ' + me.last_name);
+    showApp();
+    await loadData();
+  } catch (e) {
+    showAuthError('Could not connect. Check your credentials. ' + e.message);
+    state.token = '';
+    state.accountId = '';
+    state.forecastAccountId = '';
+  }
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-header').style.display = 'flex';
+  document.getElementById('app-main').style.display = 'block';
+  const name = localStorage.getItem('harvest_name') || 'Harvest';
+  document.getElementById('account-name').textContent = name;
+}
+
+function logout() {
+  localStorage.removeItem('harvest_token');
+  localStorage.removeItem('harvest_account');
+  localStorage.removeItem('harvest_name');
+  state.token = '';
+  state.accountId = '';
+  document.getElementById('app-header').style.display = 'none';
+  document.getElementById('app-main').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'block';
+  document.getElementById('token-input').value = '';
+  document.getElementById('account-input').value = '';
+}
+
+async function tryFetchAll(path, key, params = '') {
+  try { return await fetchAll(path, key, params); }
+  catch(e) { return null; }
+}
+
+async function loadData() {
+  setLoading(true);
+  clearError();
+  try {
+    // Get current user first (always works)
+    const me = await harvestFetch('/users/me');
+    state.currentUserId = me.id;
+
+    // Try org-wide project list; fall back to my project assignments
+    let projects = await tryFetchAll('/projects', 'projects', '?is_active=true');
+    let myProjectAssignments = [];
+    if (!projects) {
+      myProjectAssignments = await fetchAll('/users/me/project_assignments', 'project_assignments');
+      projects = myProjectAssignments.map(a => a.project);
+    }
+    if (state.filterProjectId) {
+      projects = projects.filter(p => String(p.id) === String(state.filterProjectId));
+      myProjectAssignments = myProjectAssignments.filter(a => String(a.project.id) === String(state.filterProjectId));
+    }
+    state.projects = projects;
+    state.myProjectAssignments = myProjectAssignments;
+    console.log('[Harvest] projects sample:', projects[0]);
+
+    // Try org-wide user list; fall back to just current user
+    let users = await tryFetchAll('/users', 'users', '?is_active=true');
+    if (!users) users = [me];
+    state.users = users;
+
+    populateFilters();
+
+    // Fetch Forecast data: projects, people, assignments
+    const sixMonthsAgoF = new Date();
+    sixMonthsAgoF.setMonth(sixMonthsAgoF.getMonth() - 6);
+    const fromStr = formatDate(sixMonthsAgoF);
+    // Fetch assignments 1 year into the future so projected burndown has data
+    const oneYearAhead = new Date(); oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
+    const aheadStr = formatDate(oneYearAhead);
+    const [fcProjects, fcPeople, fcAssignments] = await Promise.all([
+      forecastFetch('/projects').then(r => r.projects || []).catch(() => []),
+      forecastFetch('/people').then(r => r.people || []).catch(() => []),
+      forecastFetch(`/assignments?start_date=${fromStr}&end_date=${aheadStr}`).then(r => r.assignments || []).catch(() => []),
+    ]);
+    state.forecastProjects = fcProjects;
+    state.forecastPeople = fcPeople.filter(p => !p.archived);
+    state.forecastAssignments = fcAssignments;
+    console.log('[Forecast] project sample:', fcProjects[0]);
+    console.log('[Forecast] assignment sample:', fcAssignments[0]);
+
+    // Fetch time entries — try org-wide, fall back to my own
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const dateParams = `?from=${formatDate(sixMonthsAgo)}&to=${formatDate(new Date())}`;
+    const projectParam = state.filterProjectId ? `&project_id=${state.filterProjectId}` : '';
+    // Try org-wide first; if 403, try project-scoped (works for Harvest project managers);
+    // last resort: own entries only
+    let entries = await tryFetchAll('/time_entries', 'time_entries', `${dateParams}${projectParam}`);
+    if (!entries && !state.filterProjectId) {
+      // No project filter set — try fetching per-project for each known project
+      const perProject = await Promise.all(
+        state.projects.slice(0, 50).map(p =>
+          tryFetchAll('/time_entries', 'time_entries', `${dateParams}&project_id=${p.id}`)
+        )
+      );
+      const merged = perProject.filter(Boolean).flat();
+      if (merged.length > 0) entries = merged;
+    }
+    if (!entries) {
+      entries = await fetchAll('/time_entries', 'time_entries', `${dateParams}&user_id=${me.id}${projectParam}`);
+      const warning = document.createElement('span');
+      warning.style.cssText = 'color:var(--amber);font-size:11px;margin-right:8px';
+      warning.textContent = '⚠ Showing your hours only — admin access required for full team';
+      document.getElementById('last-updated').before(warning);
+    }
+    state.timeEntries = entries;
+
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    renderMissingHoursBanner();
+    render();
+  } catch(e) {
+    showError(e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function populateFilters() {
+  const pf = document.getElementById('project-filter');
+  const mf = document.getElementById('member-filter');
+  const curP = pf.value, curM = mf.value;
+  pf.innerHTML = '<option value="">All projects</option>';
+  mf.innerHTML = '<option value="">All members</option>';
+  state.projects.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.name;
+    pf.appendChild(o);
+  });
+  state.users.forEach(u => {
+    const o = document.createElement('option');
+    o.value = u.id;
+    o.textContent = u.first_name + ' ' + u.last_name;
+    mf.appendChild(o);
+  });
+  if (curP) pf.value = curP;
+  if (curM) mf.value = curM;
+}
+
+function setLoading(v) {
+  document.getElementById('loading-state').style.display = v ? 'block' : 'none';
+  document.getElementById('dashboard').style.display = v ? 'none' : 'block';
+}
+function showError(msg) {
+  const el = document.getElementById('error-state');
+  el.textContent = 'Error: ' + msg;
+  el.style.display = 'block';
+}
+function clearError() {
+  document.getElementById('error-state').style.display = 'none';
+}
+
+function shiftWeek(d) {
+  state.currentWeekOffset += d;
+  if (state.view !== 'week') setView('week');
+  else render();
+}
+
+function setView(v) {
+  state.view = v;
+  ['week','all','burndown'].forEach(id => {
+    document.getElementById('tab-' + id).classList.toggle('active', id === v);
+  });
+  render();
+}
+
+function getFilteredEntries() {
+  const pf = document.getElementById('project-filter')?.value;
+  const mf = document.getElementById('member-filter')?.value;
+  let entries = state.timeEntries;
+  if (pf) entries = entries.filter(e => String(e.project.id) === pf);
+  if (mf) entries = entries.filter(e => String(e.user.id) === mf);
+  return entries;
+}
+
+function getWeekEntries() {
+  const { from, to } = weekRange(state.currentWeekOffset);
+  document.getElementById('week-label').textContent = weekRange(state.currentWeekOffset).label;
+  return getFilteredEntries().filter(e => e.spent_date >= from && e.spent_date <= to);
+}
+
+function getForecastProjectId(harvestProjectId) {
+  const fp = state.forecastProjects.find(p => String(p.harvest_id) === String(harvestProjectId));
+  return fp ? fp.id : null;
+}
+
+function getForecastPersonId(harvestUserId) {
+  const person = state.forecastPeople.find(p => String(p.harvest_user_id) === String(harvestUserId));
+  return person ? person.id : null;
+}
+
+function getForecastHours(forecastProjectId, forecastPersonId, from, to) {
+  // Sum allocation (seconds/day) across all matching assignments within date range
+  let totalSeconds = 0;
+  state.forecastAssignments.forEach(a => {
+    if (forecastProjectId && a.project_id !== forecastProjectId) return;
+    if (forecastPersonId && a.person_id !== forecastPersonId) return;
+    if (!a.allocation) return;
+    // Count weekdays in the overlap of [a.start_date, a.end_date] and [from, to]
+    const start = new Date(Math.max(new Date(a.start_date), new Date(from)));
+    const end = new Date(Math.min(new Date(a.end_date), new Date(to)));
+    if (start > end) return;
+    let days = 0;
+    const d = new Date(start);
+    while (d <= end) {
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) days++;
+      d.setDate(d.getDate() + 1);
+    }
+    totalSeconds += a.allocation * days;
+  });
+  return totalSeconds / 3600;
+}
+
+function getProjectPersonIds(harvestProjectIds) {
+  // Returns the set of Forecast person IDs assigned to the given Harvest project(s)
+  const fpIds = new Set(harvestProjectIds.map(id => getForecastProjectId(id)).filter(Boolean));
+  if (fpIds.size === 0) return new Set();
+  const personIds = new Set();
+  state.forecastAssignments.forEach(a => {
+    if (fpIds.has(a.project_id)) personIds.add(a.person_id);
+  });
+  return personIds;
+}
+
+function getTimeOffForWeek(from, to) {
+  const timeOffKeywords = /time.?off|holiday|vacation|pto|leave|sick/i;
+  const timeOffProjectIds = new Set(
+    state.forecastProjects
+      .filter(p => !p.harvest_id && (p.name ? timeOffKeywords.test(p.name) : true))
+      .map(p => p.id)
+  );
+  if (timeOffProjectIds.size === 0) return [];
+
+  // Limit to people on the visible project(s)
+  const visibleHarvestIds = state.filterProjectId
+    ? [parseInt(state.filterProjectId)]
+    : state.projects.map(p => p.id);
+  const projectPersonIds = getProjectPersonIds(visibleHarvestIds);
+  if (projectPersonIds.size === 0) return [];
+
+  const offPeople = {};
+  state.forecastAssignments.forEach(a => {
+    if (!timeOffProjectIds.has(a.project_id)) return;
+    if (!a.allocation) return;
+    if (!projectPersonIds.has(a.person_id)) return;
+    const start = new Date(Math.max(new Date(a.start_date), new Date(from)));
+    const end = new Date(Math.min(new Date(a.end_date), new Date(to)));
+    if (start > end) return;
+    let days = 0;
+    const d = new Date(start);
+    while (d <= end) {
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) days++;
+      d.setDate(d.getDate() + 1);
+    }
+    if (days === 0) return;
+    const person = state.forecastPeople.find(p => p.id === a.person_id);
+    const name = person ? `${person.first_name} ${person.last_name}`.trim() : `Person ${a.person_id}`;
+    if (!offPeople[name]) offPeople[name] = 0;
+    offPeople[name] += days;
+  });
+  return Object.entries(offPeople).map(([name, days]) => ({ name, days }));
+}
+
+function renderMissingHoursBanner() {
+  const banner = document.getElementById('missing-hours-banner');
+  const { from, to } = weekRange(-1);
+  // People with Forecast allocations last week
+  const timeOffKeywords = /time.?off|holiday|vacation|pto|leave|sick/i;
+  const timeOffProjectIds = new Set(
+    state.forecastProjects.filter(p => !p.harvest_id && p.name && timeOffKeywords.test(p.name)).map(p => p.id)
+  );
+  const activeProjectId = document.getElementById('project-filter')?.value || state.filterProjectId;
+  const filteredForecastId = activeProjectId ? getForecastProjectId(parseInt(activeProjectId)) : null;
+
+  // Determine which Forecast project IDs are in scope
+  let scopedForecastProjectIds = null;
+  if (activeProjectId) {
+    if (!filteredForecastId) { banner.style.display = 'none'; return; }
+    scopedForecastProjectIds = new Set([filteredForecastId]);
+  } else {
+    const ids = new Set(state.projects.map(p => getForecastProjectId(p.id)).filter(Boolean));
+    if (ids.size === 0) { banner.style.display = 'none'; return; }
+    scopedForecastProjectIds = ids;
+  }
+
+  // Build set of names with actual forecasted hours > 0 for last week, scoped to relevant projects
+  const forecasted = new Set();
+  const personHours = {};
+  state.forecastAssignments.forEach(a => {
+    if (timeOffProjectIds.has(a.project_id)) return;
+    if (!a.allocation) return;
+    if (!scopedForecastProjectIds.has(a.project_id)) return;
+    // Count actual weekdays in the overlap
+    const start = new Date(Math.max(new Date(a.start_date), new Date(from)));
+    const end = new Date(Math.min(new Date(a.end_date), new Date(to)));
+    if (start > end) return;
+    let days = 0;
+    const d = new Date(start);
+    while (d <= end) {
+      if (d.getDay() !== 0 && d.getDay() !== 6) days++;
+      d.setDate(d.getDate() + 1);
+    }
+    if (days === 0) return;
+    const hours = (a.allocation * days) / 3600;
+    if (hours <= 0) return;
+    const person = state.forecastPeople.find(p => p.id === a.person_id);
+    if (!person) return;
+    const name = `${person.first_name} ${person.last_name}`.trim();
+    console.log('[MissingHours] forecasted:', name, 'project_id:', a.project_id, 'hours:', hours.toFixed(1));
+    personHours[name] = (personHours[name] || 0) + hours;
+  });
+  Object.keys(personHours).forEach(name => forecasted.add(name));
+
+  if (forecasted.size === 0) { banner.style.display = 'none'; return; }
+
+  // People who submitted hours last week on the relevant project(s)
+  const submitted = new Set(
+    state.timeEntries
+      .filter(e => {
+        if (e.spent_date < from || e.spent_date > to) return false;
+        if (activeProjectId && String(e.project.id) !== String(activeProjectId)) return false;
+        return true;
+      })
+      .map(e => e.user.name)
+  );
+
+  const missing = [...forecasted].filter(name => !submitted.has(name)).sort();
+  if (missing.length === 0) { banner.style.display = 'none'; return; }
+
+  const names = missing.map(n => `<strong style="font-weight:500">${n}</strong>`).join(', ');
+  banner.innerHTML = `⚠ Missing hours for last week (${from} – ${to}): ${names}`;
+  banner.style.display = 'block';
+}
+
+function renderTimeOffBanner(from, to) {
+  const banner = document.getElementById('timeoff-banner');
+  const people = getTimeOffForWeek(from, to);
+  if (people.length === 0) { banner.style.display = 'none'; return; }
+  const items = people.map(p => `<strong style="font-weight:500">${p.name}</strong> (${p.days === 1 ? '1 day' : p.days + ' days'})`).join(', ');
+  banner.innerHTML = `⚠ Time off this week: ${items}`;
+  banner.style.display = 'block';
+}
+
+// Forecast hours for a project (and optionally a person) within a date range
+function getForecastedHours(harvestProjectId, harvestUserId, from, to) {
+  const fpId = getForecastProjectId(harvestProjectId);
+  if (!fpId) return null;
+  if (harvestUserId) {
+    const personId = getForecastPersonId(harvestUserId);
+    if (!personId) return null; // not in Forecast (archived or never added)
+    const hours = getForecastHours(fpId, personId, from, to);
+    return hours > 0 ? hours : null;
+  }
+  const hours = getForecastHours(fpId, null, from, to);
+  return hours > 0 ? hours : null;
+}
+
+// Manually entered total budget — used only for Burndown and What-if
+function getManualBudget(harvestProjectId) {
+  const manual = parseFloat(localStorage.getItem(`budget_${harvestProjectId}`));
+  return manual > 0 ? manual : null;
+}
+
+function saveProjectBudget(harvestProjectId, hours) {
+  localStorage.setItem(`budget_${harvestProjectId}`, hours);
+  render();
+}
+
+function getProjectEndDate(harvestProjectId) {
+  return localStorage.getItem(`endDate_${harvestProjectId}`) || '';
+}
+
+function saveProjectEndDate(harvestProjectId, date) {
+  if (date) localStorage.setItem(`endDate_${harvestProjectId}`, date);
+  else localStorage.removeItem(`endDate_${harvestProjectId}`);
+  render();
+}
+
+// Custom Chart.js plugin: draws a vertical dashed line at a given label index
+const endDateLinePlugin = {
+  id: 'endDateLine',
+  afterDraw(chart, args, opts) {
+    if (opts.xIndex == null || opts.xIndex < 0) return;
+    const ctx = chart.ctx;
+    const xScale = chart.scales.x;
+    const yScale = chart.scales.y;
+    if (!xScale || !yScale) return;
+    const x = xScale.getPixelForValue(opts.xIndex);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, yScale.top);
+    ctx.lineTo(x, yScale.bottom);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#e24b4a';
+    ctx.setLineDash([6, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#e24b4a';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Project end', x + 5, yScale.top + 14);
+    ctx.restore();
+  }
+};
+
+function saveWhatIfEndDate(date) {
+  const projectId = parseInt(document.getElementById('wi-project')?.value);
+  if (!projectId) return;
+  saveProjectEndDate(projectId, date);
+}
+
+function saveWhatIfBudget(value) {
+  const projectId = parseInt(document.getElementById('wi-project')?.value);
+  if (!projectId) return;
+  const hours = parseFloat(value);
+  if (!isNaN(hours) && hours >= 0) {
+    localStorage.setItem(`budget_${projectId}`, hours);
+    renderWhatIf();
+  }
+}
+
+function saveBurndownBudget() {
+  const pf = document.getElementById('project-filter')?.value;
+  if (!pf) return;
+  const input = document.getElementById(`bd-budget-${pf}`);
+  const hours = parseFloat(input?.value);
+  if (!isNaN(hours) && hours >= 0) {
+    localStorage.setItem(`budget_${pf}`, hours);
+    render();
+  }
+}
+
+function render() {
+  if (!state.projects.length) return;
+  document.getElementById('week-label').textContent = weekRange(state.currentWeekOffset).label;
+  document.getElementById('whatif-panel').style.display = state.view === 'whatif' ? 'block' : 'none';
+  document.getElementById('dashboard').style.display = state.view === 'whatif' ? 'none' : 'block';
+  document.getElementById('timeoff-banner').style.display = state.view === 'whatif' ? 'none' : '';
+  renderMissingHoursBanner();
+  if (state.view === 'burndown') renderBurndown();
+  else { document.getElementById('runout-banner').innerHTML = ''; }
+  if (state.view === 'whatif') renderWhatIf();
+  else if (state.view !== 'burndown') renderTable();
+}
+
+// ── What-if planner ─────────────────────────────────────────────────────────
+
+let wiResources = [];
+let wiRemovals = [];
+let wiChartInst = null;
+
+function populateWhatIfProjects() {
+  const sel = document.getElementById('wi-project');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Select a project...</option>';
+  state.projects.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = p.name;
+    sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
+}
+
+function addResource() {
+  wiResources.push({ label: 'Talent ' + (wiResources.length + 1), hoursPerWeek: 40 });
+  renderWhatIf();
+}
+
+function removeResource(i) {
+  wiResources.splice(i, 1);
+  renderWhatIf();
+}
+
+function updateResource(i, field, value) {
+  wiResources[i][field] = field === 'hoursPerWeek' ? parseFloat(value) || 0 : value;
+  renderWhatIf();
+}
+
+function addRemoval() {
+  wiRemovals.push({ label: '', hoursPerWeek: 40 });
+  renderWhatIf();
+}
+
+function removeRemoval(i) {
+  wiRemovals.splice(i, 1);
+  renderWhatIf();
+}
+
+function updateRemoval(i, field, value) {
+  wiRemovals[i][field] = field === 'hoursPerWeek' ? parseFloat(value) || 0 : value;
+  renderWhatIf();
+}
+
+function renderWhatIf() {
+  populateWhatIfProjects();
+  const projectId = parseInt(document.getElementById('wi-project')?.value);
+  const statsEl = document.getElementById('wi-stats');
+  const resultEl = document.getElementById('wi-result');
+
+  // Render resource inputs
+  const resContainer = document.getElementById('wi-resources');
+  const today = formatDate(new Date());
+  const inputStyle = 'padding:6px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit';
+  const dateStyle = `width:110px;${inputStyle}`;
+  function resourceRow(r, i, sign, color, updateFn, removeFn) {
+    return `
+    <div style="display:grid;grid-template-columns:14px 1fr 72px auto 110px 110px auto;align-items:center;gap:8px">
+      <span style="font-size:11px;color:${color};font-weight:600">${sign}</span>
+      <input type="text" value="${r.label}" onblur="${updateFn}(${i},'label',this.value)"
+        style="${inputStyle}" placeholder="Talent name">
+      <input type="number" value="${r.hoursPerWeek}" min="1" max="80" oninput="${updateFn}(${i},'hoursPerWeek',this.value)"
+        style="${inputStyle}" placeholder="h/wk">
+      <span style="font-size:12px;color:var(--text3);white-space:nowrap">h/wk</span>
+      <input type="date" value="${r.startDate || today}" onchange="${updateFn}(${i},'startDate',this.value)"
+        style="${dateStyle}" title="Start date">
+      <input type="date" value="${r.endDate || ''}" onchange="${updateFn}(${i},'endDate',this.value)"
+        style="${dateStyle}" placeholder="No end" title="End date (leave blank for open-ended)">
+      <button onclick="${removeFn}(${i})" style="background:#fee2e2;border:none;cursor:pointer;color:#e24b4a;font-size:13px;padding:4px 8px;border-radius:4px;line-height:1;white-space:nowrap" title="Remove row">Remove</button>
+    </div>`;
+  }
+  const addRows = wiResources.map((r, i) => resourceRow(r, i, '+', '#3b6d11', 'updateResource', 'removeResource')).join('');
+  const removeRows = wiRemovals.map((r, i) => resourceRow(r, i, '−', '#e24b4a', 'updateRemoval', 'removeRemoval')).join('');
+  if (wiResources.length === 0 && wiRemovals.length === 0) {
+    resContainer.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px 0">Add or remove talent to model budget impact.</div>';
+  } else {
+    const header = `<div style="display:grid;grid-template-columns:14px 1fr 72px auto 110px 110px auto;gap:8px;margin-bottom:2px">
+      <span></span><span style="font-size:11px;color:var(--text3)">Name</span><span style="font-size:11px;color:var(--text3)">h/wk</span>
+      <span></span><span style="font-size:11px;color:var(--text3)">Start date</span><span style="font-size:11px;color:var(--text3)">End date</span><span></span>
+    </div>`;
+    resContainer.innerHTML = header + addRows + removeRows;
+  }
+
+  if (!projectId) {
+    statsEl.innerHTML = '<div style="color:var(--text3);font-size:13px;grid-column:span 2">Select a project to begin.</div>';
+    resultEl.innerHTML = '';
+    if (wiChartInst) { wiChartInst.destroy(); wiChartInst = null; }
+    return;
+  }
+
+  const totalBudget = getManualBudget(projectId) || 0;
+  const projectEntries = state.timeEntries.filter(e => e.project.id === projectId && e.billable);
+  const hoursUsed = projectEntries.reduce((s, e) => s + e.hours, 0);
+  const hoursRemaining = Math.max(0, totalBudget - hoursUsed);
+
+  // Weekly burn rate from last 4 weeks
+  const now = new Date();
+  const fourWeeksAgo = formatDate(new Date(new Date().setDate(now.getDate() - 28)));
+  const recentEntries = projectEntries.filter(e => e.spent_date >= fourWeeksAgo && e.spent_date <= today);
+  const currentBurnRate = recentEntries.reduce((s, e) => s + e.hours, 0) / 4;
+  const hasScenario = wiResources.length > 0 || wiRemovals.length > 0;
+
+  // Stats cards
+  statsEl.innerHTML = `
+    <div class="metric-card"><div class="metric-label">Total budget</div><div class="metric-value" style="font-size:18px">${totalBudget.toFixed(0)}h</div></div>
+    <div class="metric-card"><div class="metric-label">Hours used</div><div class="metric-value" style="font-size:18px">${hoursUsed.toFixed(0)}h</div></div>
+    <div class="metric-card"><div class="metric-label">Remaining</div><div class="metric-value" style="font-size:18px">${hoursRemaining.toFixed(0)}h</div></div>
+    <div class="metric-card"><div class="metric-label">Current burn</div><div class="metric-value" style="font-size:18px">${Math.round(currentBurnRate)}h<span style="font-size:12px;font-weight:400;color:var(--text3)">/wk</span></div></div>
+  `;
+
+  // Projection — per-week burn rate respects each resource's start/end dates
+  const weeks = [];
+  const baseRemaining = [], scenarioRemaining = [];
+  let base = hoursRemaining, scenario = hoursRemaining;
+  let baseRunOutWeek = null, scenarioRunOutWeek = null;
+  for (let w = 0; w <= 52; w++) {
+    const weekStart = getMonday(new Date(new Date().setDate(new Date().getDate() + w * 7)));
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
+    const weekStartStr = formatDate(weekStart);
+    const weekEndStr = formatDate(weekEnd);
+    weeks.push(formatWeekLabel(weekStart, weekEnd));
+
+    // Net adjustment for this specific week from dated resources
+    let weekAdded = 0, weekRemoved = 0;
+    wiResources.forEach(r => {
+      const start = r.startDate || weekStartStr;
+      const end = r.endDate || weekEndStr;
+      if (weekStartStr <= end && weekEndStr >= start) weekAdded += (r.hoursPerWeek || 0);
+    });
+    wiRemovals.forEach(r => {
+      const start = r.startDate || weekStartStr;
+      const end = r.endDate || weekEndStr;
+      if (weekStartStr <= end && weekEndStr >= start) weekRemoved += (r.hoursPerWeek || 0);
+    });
+    const weekScenarioBurn = Math.max(0, currentBurnRate + weekAdded - weekRemoved);
+
+    baseRemaining.push(parseFloat(Math.max(0, base).toFixed(1)));
+    scenarioRemaining.push(parseFloat(Math.max(0, scenario).toFixed(1)));
+    if (base > 0 && base - currentBurnRate <= 0 && baseRunOutWeek === null) baseRunOutWeek = w;
+    if (scenario > 0 && scenario - weekScenarioBurn <= 0 && scenarioRunOutWeek === null) scenarioRunOutWeek = w;
+    base = Math.max(0, base - currentBurnRate);
+    scenario = Math.max(0, scenario - weekScenarioBurn);
+    if (base <= 0 && scenario <= 0) break;
+  }
+
+  // Result summary
+  if (totalBudget === 0) {
+    resultEl.innerHTML = '<span style="color:var(--text3)">No budget set for this project. Enter one on the Burndown tab.</span>';
+  } else if (hasScenario) {
+    const baseDate = baseRunOutWeek != null ? weeks[baseRunOutWeek] : 'beyond 1 year';
+    const scenDate = scenarioRunOutWeek != null ? weeks[scenarioRunOutWeek] : 'beyond 1 year';
+    const weekDiff = (baseRunOutWeek != null && scenarioRunOutWeek != null) ? scenarioRunOutWeek - baseRunOutWeek : null;
+    const numAdded = wiResources.length, numRemoved = wiRemovals.length;
+    const netLabel = numAdded > 0 && numRemoved > 0
+      ? `${numAdded} talent${numAdded !== 1 ? 's' : ''} added, ${numRemoved} removed`
+      : numAdded > 0 ? `${numAdded} talent${numAdded !== 1 ? 's' : ''} added`
+      : `${numRemoved} talent${numRemoved !== 1 ? 's' : ''} removed`;
+    const endsLater = scenarioRunOutWeek == null || (baseRunOutWeek != null && scenarioRunOutWeek > baseRunOutWeek);
+    const scenColor = endsLater ? '#3b6d11' : '#e24b4a';
+    const diffText = weekDiff != null && weekDiff !== 0
+      ? ` — <strong style="font-weight:500">${Math.abs(weekDiff)} week${Math.abs(weekDiff) !== 1 ? 's' : ''} ${weekDiff > 0 ? 'later' : 'sooner'}</strong>`
+      : '';
+    resultEl.innerHTML = `
+      <span style="color:var(--text2)">At current burn rate, hours run out <strong style="font-weight:500;color:var(--text)">${baseDate}</strong>.</span>
+      &nbsp;&nbsp;
+      <span style="color:var(--text2)">With ${netLabel}, hours run out <strong style="font-weight:500;color:${scenColor}">${scenDate}</strong>${diffText}.</span>`;
+  } else {
+    const baseDate = baseRunOutWeek != null ? weeks[baseRunOutWeek] : 'beyond 1 year';
+    resultEl.innerHTML = `<span style="color:var(--text2)">At current burn rate, hours run out <strong style="font-weight:500;color:var(--text)">${baseDate}</strong>.</span>`;
+  }
+
+  // Show and populate budget field
+  const wiBudgetWrap = document.getElementById('wi-budget-wrap');
+  const wiBudgetInput = document.getElementById('wi-budget');
+  if (wiBudgetWrap && wiBudgetInput) {
+    wiBudgetWrap.style.display = 'flex';
+    const savedBudget = getManualBudget(projectId);
+    if (wiBudgetInput.value !== String(savedBudget || '')) wiBudgetInput.value = savedBudget || '';
+  }
+
+  // Show and populate end date field
+  const wiEndWrap = document.getElementById('wi-enddate-wrap');
+  const wiEndInput = document.getElementById('wi-enddate');
+  if (wiEndWrap && wiEndInput) {
+    wiEndWrap.style.display = 'block';
+    const existingEnd = getProjectEndDate(projectId);
+    if (wiEndInput.value !== existingEnd) wiEndInput.value = existingEnd;
+  }
+
+  // Find end date index in weeks array
+  const wiEndDate = getProjectEndDate(projectId);
+  const wiEndDateIndex = wiEndDate ? weeks.findIndex((label, i) => {
+    const weekStart = getMonday(new Date(new Date().setDate(new Date().getDate() + i * 7)));
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
+    return wiEndDate >= formatDate(weekStart) && wiEndDate <= formatDate(weekEnd);
+  }) : -1;
+
+  // Chart
+  if (wiChartInst) { wiChartInst.destroy(); wiChartInst = null; }
+  const scenLabel = wiResources.length > 0 && wiRemovals.length > 0 ? 'With changes'
+    : wiResources.length > 0 ? 'With added talent' : 'With removed talent';
+  const endsLater = scenarioRunOutWeek == null || (baseRunOutWeek != null && scenarioRunOutWeek > baseRunOutWeek);
+  const scenColor = endsLater ? '#3b6d11' : '#e24b4a';
+  const datasets = [
+    { label: 'Current trajectory', data: baseRemaining, borderColor: '#185fa5', backgroundColor: 'rgba(24,95,165,0.08)', fill: true, tension: 0.3, pointRadius: 2 },
+  ];
+  if (hasScenario) {
+    datasets.push({ label: scenLabel, data: scenarioRemaining, borderColor: scenColor, backgroundColor: 'transparent', tension: 0.3, borderDash: [5, 3], pointRadius: 2 });
+  }
+  wiChartInst = new Chart(document.getElementById('wi-chart'), {
+    type: 'line',
+    data: { labels: weeks, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: datasets.length > 1, labels: { boxWidth: 12, font: { size: 12 } } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y)}h remaining` } },
+        endDateLine: { xIndex: wiEndDateIndex }
+      },
+      scales: {
+        x: { ticks: { maxRotation: 40, autoSkip: true, maxTicksLimit: 10 } },
+        y: { min: 0, ticks: { callback: v => v + 'h' }, grid: { color: 'rgba(136,135,128,0.15)' } }
+      }
+    },
+    plugins: [endDateLinePlugin]
+  });
+}
+
+function renderTable() {
+  const isWeekView = state.view === 'week';
+  const entries = isWeekView ? getWeekEntries() : getFilteredEntries();
+
+  const { from, to } = isWeekView
+    ? weekRange(state.currentWeekOffset)
+    : { from: formatDate(new Date(new Date().setMonth(new Date().getMonth() - 6))), to: formatDate(new Date()) };
+
+  if (isWeekView) renderTimeOffBanner(from, to);
+  else document.getElementById('timeoff-banner').style.display = 'none';
+
+  const todayStr = formatDate(new Date());
+  const isFutureWeek = isWeekView && from > todayStr;
+
+  // Group: project → user → billable + non-billable hours
+  const groups = {};
+  entries.forEach(e => {
+    const pid = e.project.id;
+    const uid = e.user.id;
+    if (!groups[pid]) groups[pid] = { project: e.project, members: {} };
+    if (!groups[pid].members[uid]) groups[pid].members[uid] = { user: e.user, billable: 0, nonBillable: 0 };
+    if (e.billable) groups[pid].members[uid].billable += e.hours;
+    else groups[pid].members[uid].nonBillable += e.hours;
+  });
+
+  // For future weeks with no entries, build groups from Forecast assignments
+  if (isFutureWeek && Object.keys(groups).length === 0) {
+    const scopedProjects = state.filterProjectId
+      ? state.projects.filter(p => String(p.id) === String(state.filterProjectId))
+      : state.projects;
+    scopedProjects.forEach(project => {
+      const fpId = getForecastProjectId(project.id);
+      if (!fpId) return;
+      const assignedPeople = state.forecastAssignments.filter(
+        a => a.project_id === fpId && a.start_date <= to && a.end_date >= from
+      );
+      if (assignedPeople.length === 0) return;
+      const uniquePersonIds = [...new Set(assignedPeople.map(a => a.person_id))];
+      uniquePersonIds.forEach(personId => {
+        const person = state.forecastPeople.find(p => p.id === personId);
+        if (!person) return;
+        const hrs = getForecastHours(fpId, personId, from, to);
+        if (hrs <= 0) return;
+        if (!groups[project.id]) groups[project.id] = { project, members: {} };
+        const uid = person.harvest_user_id || personId;
+        groups[project.id].members[uid] = {
+          user: { id: uid, name: `${person.first_name} ${person.last_name}` },
+          billable: 0, nonBillable: 0,
+          forecastOverride: hrs
+        };
+      });
+    });
+  }
+
+  let totalForecast = 0, totalBillable = 0, totalNonBillable = 0;
+
+  const rows = [];
+  Object.values(groups).forEach(pg => {
+    const projForecastedHours = getForecastedHours(pg.project.id, null, from, to);
+    let projBillable = 0, projNonBillable = 0;
+
+    const memberRows = Object.values(pg.members).map(mg => {
+      projBillable += mg.billable;
+      projNonBillable += mg.nonBillable;
+      const memberForecast = mg.forecastOverride != null
+        ? mg.forecastOverride
+        : getForecastedHours(pg.project.id, mg.user.id, from, to);
+      const uname = mg.user.name || (mg.user.first_name ? mg.user.first_name + ' ' + mg.user.last_name : 'Unknown');
+      return { type: 'member', name: uname, billable: mg.billable, nonBillable: mg.nonBillable, forecast: memberForecast };
+    });
+
+    totalBillable += projBillable;
+    totalNonBillable += projNonBillable;
+    if (projForecastedHours) totalForecast += projForecastedHours;
+
+    rows.push({ type: 'project', id: pg.project.id, name: pg.project.name, billable: projBillable, nonBillable: projNonBillable, forecast: projForecastedHours || null });
+    rows.push(...memberRows);
+  });
+
+  // Metrics — only billable hours count against forecast
+  const variance = totalForecast ? totalBillable - totalForecast : null;
+  const burnPct = totalForecast ? Math.round(totalBillable / totalForecast * 100) : null;
+  renderMetrics(totalForecast, totalBillable, totalNonBillable, variance, burnPct, isWeekView);
+
+  // Table
+  document.getElementById('table-title').textContent = isWeekView
+    ? `By project & member — ${weekRange(state.currentWeekOffset).label}${isFutureWeek ? ' (forecasted)' : ''}`
+    : 'All time — by project & member';
+  document.getElementById('row-count').textContent = Object.keys(groups).length + ' projects';
+  const tbody = document.getElementById('data-table');
+  tbody.innerHTML = '';
+
+  // Update header for billable split
+  document.querySelector('thead tr').innerHTML = `
+    <th style="width:30%">Project / Member</th>
+    <th class="num">Forecasted</th>
+    <th class="num">${isFutureWeek ? 'Submitted' : 'Billable'}</th>
+    <th class="num">Non-billable</th>
+    <th class="num">Variance</th>
+    <th class="num">Burndown</th>
+    <th class="num" style="width:110px">Progress</th>
+  `;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">${isFutureWeek ? 'No forecast data available for this week' : 'No hours logged for this period'}</td></tr>`;
+    return;
+  }
+
+  rows.forEach(row => {
+    const tr = document.createElement('tr');
+    const variance = row.forecast ? row.billable - row.forecast : null;
+    const pct = row.forecast ? row.billable / row.forecast : null;
+
+    let badge = '';
+    if (variance !== null) {
+      if (variance > 0) badge = `<span class="badge badge-over">+${Math.round(variance)}h over</span>`;
+      else if (variance < -1) badge = `<span class="badge badge-under">${Math.round(variance)}h left</span>`;
+      else badge = `<span class="badge badge-ok">on track</span>`;
+    }
+
+    let bar = '';
+    if (pct !== null) {
+      const barPct = Math.min(100, Math.round(pct * 100));
+      const cls = pct < 0.7 ? 'bar-green' : pct < 1 ? 'bar-amber' : 'bar-red';
+      bar = `<div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${barPct}%"></div></div> <span style="color:var(--text3);font-size:11px">${barPct}%</span>`;
+    }
+
+    const burnLeft = row.forecast ? Math.round(Math.max(0, row.forecast - row.billable)) + 'h' : '—';
+    const nbDisplay = row.nonBillable > 0 ? `<span style="color:var(--text3)">${Math.round(row.nonBillable)}h</span>` : '<span style="color:var(--text3)">—</span>';
+
+    let forecastCell;
+    if (row.type === 'project' && !isWeekView) {
+      forecastCell = `<div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+           <input type="number" min="0" value="${row.forecast || ''}" placeholder="set budget"
+             style="width:80px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;font-family:inherit;text-align:right"
+             onkeydown="if(event.key==='Enter')saveProjectBudget(${row.id},this.value)">
+           <button onclick="saveProjectBudget(${row.id},this.previousElementSibling.value)"
+             style="padding:3px 8px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:11px;cursor:pointer;font-family:inherit">Save</button>
+         </div>`;
+    } else {
+      forecastCell = row.forecast ? Math.round(row.forecast) + 'h' : '—';
+    }
+
+    tr.innerHTML = `
+      <td class="${row.type === 'project' ? 'project-name' : 'member-name'}">${row.name}</td>
+      <td class="num">${forecastCell}</td>
+      <td class="num">${Math.round(row.billable)}h</td>
+      <td class="num">${nbDisplay}</td>
+      <td class="num">${badge || (variance !== null ? Math.round(variance) + 'h' : '—')}</td>
+      <td class="num">${burnLeft}</td>
+      <td class="num">${bar || '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Chart: top projects bar
+  renderProjectChart(groups, from, to);
+}
+
+function renderMetrics(forecast, billable, nonBillable, variance, burnPct, isWeek) {
+  const container = document.getElementById('metrics-row');
+  const varStr = variance !== null
+    ? (variance >= 0 ? '+' : '') + Math.round(variance) + 'h'
+    : '—';
+  const varColor = variance === null ? 'inherit' : variance > 0 ? 'var(--red)' : 'var(--green)';
+
+  container.innerHTML = `
+    <div class="metric-card">
+      <div class="metric-label">Forecasted</div>
+      <div class="metric-value">${forecast ? forecast.toFixed(0) + 'h' : '—'}</div>
+      <div class="metric-sub">${isWeek ? 'this week' : 'total budget'}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Billable submitted</div>
+      <div class="metric-value">${billable.toFixed(0)}h</div>
+      <div class="metric-sub">${isWeek ? 'this week' : 'hours logged'}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Non-billable</div>
+      <div class="metric-value" style="color:var(--text2)">${nonBillable.toFixed(0)}h</div>
+      <div class="metric-sub">not counted against forecast</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Variance</div>
+      <div class="metric-value" style="color:${varColor}">${varStr}</div>
+      <div class="metric-sub">${variance !== null ? (variance >= 0 ? 'over forecast' : 'under forecast') : 'no budget set'}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Burn rate</div>
+      <div class="metric-value">${burnPct !== null ? burnPct + '%' : '—'}</div>
+      <div class="metric-sub">${burnPct !== null ? 'of budget used' : 'no budget set'}</div>
+    </div>
+  `;
+}
+
+let chartInst = null;
+
+function renderProjectChart(_groups, _from, _to) {
+  // Always use current week entries for the chart so it never shows future/past data
+  const { from, to } = weekRange(state.currentWeekOffset);
+  const weekEntries = getFilteredEntries().filter(e => e.spent_date >= from && e.spent_date <= to);
+  const groups = {};
+  weekEntries.forEach(e => {
+    const pid = e.project.id;
+    const uid = e.user.id;
+    if (!groups[pid]) groups[pid] = { project: e.project, members: {} };
+    if (!groups[pid].members[uid]) groups[pid].members[uid] = { user: e.user, billable: 0, nonBillable: 0 };
+    if (e.billable) groups[pid].members[uid].billable += e.hours;
+    else groups[pid].members[uid].nonBillable += e.hours;
+  });
+  const chartArea = document.getElementById('chart-area');
+  chartArea.innerHTML = `
+    <div class="chart-section">
+      <h3>Hours by project</h3>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#185fa5"></span>Submitted</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#d3d1c7;border:1px dashed #888"></span>Forecasted</span>
+      </div>
+      <div style="position:relative;height:${Math.max(200, Object.keys(groups).length * 44 + 60)}px">
+        <canvas id="proj-chart" role="img" aria-label="Bar chart of submitted vs forecasted hours by project"></canvas>
+      </div>
+    </div>`;
+
+  const isFutureWeek = state.currentWeekOffset > 0;
+  const labels = [], submitted = [], forecast = [];
+  Object.values(groups).forEach(pg => {
+    const billableTotal = parseFloat(Object.values(pg.members).reduce((s, m) => s + m.billable, 0).toFixed(1));
+    const b = getForecastedHours(pg.project.id, null, from, to);
+    if (isFutureWeek && !b) return;
+    if (!isFutureWeek && billableTotal === 0 && !b) return;
+    labels.push(pg.project.name.length > 24 ? pg.project.name.slice(0, 22) + '…' : pg.project.name);
+    submitted.push(isFutureWeek ? null : (billableTotal > 0 ? billableTotal : null));
+    forecast.push(b ? parseFloat(b.toFixed(1)) : 0);
+  });
+
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+  chartInst = new Chart(document.getElementById('proj-chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        ...(!isFutureWeek ? [{ label: 'Submitted', data: submitted, backgroundColor: '#378add', borderRadius: 4, borderSkipped: false }] : []),
+        { label: 'Forecasted', data: forecast, backgroundColor: 'rgba(136,135,128,0.25)', borderColor: '#888780', borderWidth: 1, borderDash: [4,2], borderRadius: 4, borderSkipped: false },
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.parsed.x)}h`
+      }}},
+      scales: {
+        x: { ticks: { callback: v => v + 'h' }, grid: { color: 'rgba(136,135,128,0.15)' } },
+        y: { ticks: { autoSkip: false } }
+      }
+    }
+  });
+}
+
+function renderBurndown() {
+  const entries = getFilteredEntries();
+  if (entries.length === 0) {
+    document.getElementById('metrics-row').innerHTML = '';
+    document.getElementById('data-table').innerHTML =
+      '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px">No data</td></tr>';
+    document.getElementById('chart-area').innerHTML = '';
+    return;
+  }
+
+  // Build weekly burndown
+  const allDates = entries.map(e => e.spent_date).sort();
+  const startDate = new Date(allDates[0]);
+  const pf = document.getElementById('project-filter')?.value;
+  const projEndDate = pf ? getProjectEndDate(parseInt(pf)) : '';
+  // Extend chart to project end date if set, otherwise 26 weeks past today
+  const defaultHorizon = new Date(); defaultHorizon.setDate(defaultHorizon.getDate() + 26 * 7);
+  const chartEndDate = projEndDate ? new Date(Math.max(new Date(), new Date(projEndDate))) : defaultHorizon;
+  const weeks = [];
+  let d = getMonday(new Date(startDate));
+  while (d <= chartEndDate) {
+    weeks.push(new Date(d));
+    d = new Date(d); d.setDate(d.getDate() + 7);
+  }
+  const totalBudget = pf
+    ? (getManualBudget(parseInt(pf)) || 0)
+    : state.projects.reduce((s, p) => s + (getManualBudget(p.id) || 0), 0);
+
+  const todayStr = formatDate(new Date());
+
+  // Forecast project IDs in scope
+  const scopedForecastIds = pf
+    ? [getForecastProjectId(parseInt(pf))].filter(Boolean)
+    : state.projects.map(p => getForecastProjectId(p.id)).filter(Boolean);
+
+  const weeklyHours = weeks.map(wStart => {
+    const wEnd = new Date(wStart); wEnd.setDate(wStart.getDate() + 6);
+    const wFrom = formatDate(wStart), wTo = formatDate(wEnd);
+    const isFuture = wFrom > todayStr;
+    if (isFuture) {
+      // Use Forecast data for future weeks
+      const forecasted = scopedForecastIds.reduce((s, fpId) => s + getForecastHours(fpId, null, wFrom, wTo), 0);
+      return { actual: null, forecasted };
+    } else {
+      const actual = entries.filter(e => e.spent_date >= wFrom && e.spent_date <= wTo && e.billable)
+        .reduce((s, e) => s + e.hours, 0);
+      return { actual, forecasted: null };
+    }
+  });
+
+  // Cumulative hours: past uses actual, future uses forecasted
+  const cumulativeSubmitted = [];
+  const projectedRemaining = [];
+  const projectedCumulative = []; // forecasted cumulative line extending past the current week
+  let cum = 0;
+  weeklyHours.forEach(w => {
+    if (w.actual !== null) {
+      cum += w.actual;
+      cumulativeSubmitted.push(parseFloat(cum.toFixed(1)));
+      projectedRemaining.push(null);
+      projectedCumulative.push(null);
+    } else {
+      cum += w.forecasted;
+      cumulativeSubmitted.push(null);
+      projectedRemaining.push(totalBudget > 0 ? parseFloat(Math.max(0, totalBudget - cum).toFixed(1)) : null);
+      projectedCumulative.push(parseFloat(cum.toFixed(1)));
+    }
+  });
+
+  // Last actual index — the bridge point between actual and projected
+  const lastActualIdx = weeklyHours.reduce((last, w, i) => w.actual !== null ? i : last, -1);
+  if (lastActualIdx >= 0 && lastActualIdx < weeks.length - 1) {
+    if (totalBudget > 0) {
+      projectedRemaining[lastActualIdx] = parseFloat(Math.max(0, totalBudget - cumulativeSubmitted[lastActualIdx]).toFixed(1));
+    }
+    projectedCumulative[lastActualIdx] = cumulativeSubmitted[lastActualIdx];
+  }
+
+  const remaining = cumulativeSubmitted.map((s, i) => s !== null ? parseFloat(Math.max(0, totalBudget - s).toFixed(1)) : null);
+
+  const labels = weeks.map(w => {
+    const sun = new Date(w); sun.setDate(w.getDate() + 6);
+    return formatWeekLabel(w, sun);
+  });
+
+  // Metrics — use last non-null value since future weeks have null submitted
+  const lastActualSubmitted = [...cumulativeSubmitted].reverse().find(v => v !== null) || 0;
+  const totalNonBillable = entries.filter(e => !e.billable).reduce((s, e) => s + e.hours, 0);
+  const variance = totalBudget ? lastActualSubmitted - totalBudget : null;
+  const burnPct = totalBudget ? Math.round(lastActualSubmitted / totalBudget * 100) : null;
+  renderMetrics(totalBudget || null, lastActualSubmitted, totalNonBillable, variance, burnPct, false);
+
+  // Find the week when hours run out from projectedRemaining
+  let runOutHtml = '';
+  if (totalBudget > 0) {
+    // Find first week where projected remaining hits 0
+    const runOutIdx = projectedRemaining.findIndex(v => v !== null && v <= 0);
+    if (runOutIdx >= 0) {
+      const runOutWeek = weeks[runOutIdx];
+      const runOutSun = new Date(runOutWeek); runOutSun.setDate(runOutWeek.getDate() + 6);
+      const runOutLabel = formatWeekLabel(runOutWeek, runOutSun);
+      const isOverBudget = lastActualSubmitted >= totalBudget;
+      const color = isOverBudget ? '#e24b4a' : '#d97706';
+      runOutHtml = `<div style="margin-top:8px;padding:10px 14px;background:${isOverBudget ? '#fee2e2' : '#fef3c7'};border-radius:6px;font-size:13px;color:${color}">
+        ${isOverBudget
+          ? `⚠ Budget already exhausted — ${lastActualSubmitted.toFixed(0)}h submitted vs ${totalBudget.toFixed(0)}h budget.`
+          : `⚠ Based on forecasted hours, budget runs out the week of <strong>${runOutLabel}</strong>.`
+        }
+      </div>`;
+    } else if (projectedRemaining.some(v => v !== null)) {
+      // Projection stays above 0 through the entire chart window
+      const lastProjected = [...projectedRemaining].reverse().find(v => v !== null);
+      runOutHtml = `<div style="margin-top:8px;padding:10px 14px;background:rgba(59,109,17,0.08);border-radius:6px;font-size:13px;color:#3b6d11">
+        ✓ Budget is sufficient through the full forecast window — <strong>${lastProjected.toFixed(0)}h projected remaining</strong> after all scheduled hours.
+      </div>`;
+    }
+  }
+  const runoutEl = document.getElementById('runout-banner');
+  if (runoutEl) runoutEl.innerHTML = runOutHtml;
+
+  // Budget + end date controls above chart
+  const budgetEditId = pf ? `bd-budget-${pf}` : null;
+  const endDate = pf ? getProjectEndDate(parseInt(pf)) : '';
+  const ctrlStyle = 'padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text1);font-size:13px';
+  const endDateHtml = `<div style="display:flex;align-items:center;gap:8px">
+    <label style="font-size:13px;color:var(--text3)">Project end date:</label>
+    ${pf
+      ? `<input type="date" value="${endDate}" onchange="saveProjectEndDate(${pf}, this.value)" style="width:140px;${ctrlStyle}">`
+      : `<input type="date" disabled placeholder="Select a project first" style="width:140px;${ctrlStyle};opacity:0.5">`
+    }
+  </div>`;
+  const budgetEditHtml = pf
+    ? `<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="font-size:13px;color:var(--text3)">Total budget:</label>
+          <input id="${budgetEditId}" type="number" min="0" value="${totalBudget || ''}" placeholder="Enter hours" style="width:100px;${ctrlStyle}">
+          <button onclick="saveBurndownBudget()" style="padding:4px 12px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px">Save</button>
+        </div>
+        ${endDateHtml}
+      </div>`
+    : `<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+        <div style="font-size:13px;color:var(--text3)">Total budget: ${totalBudget ? totalBudget.toFixed(0) + 'h (combined)' : '—'} — select a project to edit</div>
+        ${endDateHtml}
+      </div>`;
+
+  document.getElementById('chart-area').innerHTML = `
+    <div class="chart-section">
+      ${budgetEditHtml}
+      <h3>Burndown — cumulative hours vs budget</h3>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#3b6d11"></span>Remaining (actual)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#3b6d11;opacity:0.4"></span>Projected remaining</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#185fa5"></span>Cumulative submitted</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#185fa5;opacity:0.4"></span>Forecasted (projected)</span>
+      </div>
+      <div style="position:relative;height:280px">
+        <canvas id="burndown-chart" role="img" aria-label="Burndown chart showing remaining hours over time"></canvas>
+      </div>
+    </div>`;
+
+  // Find which label index corresponds to the project end date
+  const endDateIndex = endDate ? weeks.findIndex((w, i) => {
+    const sun = new Date(w); sun.setDate(w.getDate() + 6);
+    return endDate >= formatDate(w) && endDate <= formatDate(sun);
+  }) : -1;
+
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+  chartInst = new Chart(document.getElementById('burndown-chart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Remaining (actual)', data: remaining, borderColor: '#3b6d11', backgroundColor: 'rgba(59,109,17,0.08)', fill: true, tension: 0.3, pointRadius: 3, spanGaps: false },
+        { label: 'Projected remaining', data: projectedRemaining, borderColor: '#3b6d11', backgroundColor: 'rgba(59,109,17,0.04)', fill: true, tension: 0.3, borderDash: [5, 3], pointRadius: 2, spanGaps: false },
+        { label: 'Cumulative submitted', data: cumulativeSubmitted, borderColor: '#185fa5', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, spanGaps: false },
+        { label: 'Forecasted hours (projected)', data: projectedCumulative, borderColor: '#185fa5', backgroundColor: 'transparent', tension: 0.3, borderDash: [5, 3], pointRadius: 2, spanGaps: false },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y)}h` } },
+        endDateLine: { xIndex: endDateIndex }
+      },
+      scales: {
+        x: { ticks: { maxRotation: 40, autoSkip: true, maxTicksLimit: 12 } },
+        y: { ticks: { callback: v => v + 'h' }, grid: { color: 'rgba(136,135,128,0.15)' } }
+      }
+    },
+    plugins: [endDateLinePlugin]
+  });
+
+  // Weekly breakdown table
+  document.getElementById('table-title').textContent = 'Weekly breakdown';
+  document.getElementById('row-count').textContent = weeks.length + ' weeks';
+  const tbody = document.getElementById('data-table');
+  tbody.innerHTML = '';
+  weeks.forEach((w, i) => {
+    const sun = new Date(w); sun.setDate(w.getDate() + 6);
+    const tr = document.createElement('tr');
+    const weekHrs = weeklyHours[i];
+    const isFutureRow = weekHrs.actual === null;
+    const weeklyVal = isFutureRow ? weekHrs.forecasted : weekHrs.actual;
+    const cumVal = isFutureRow ? null : cumulativeSubmitted[i];
+    const remVal = isFutureRow ? projectedRemaining[i] : remaining[i];
+    const pct = totalBudget && cumVal !== null ? Math.round(cumVal / totalBudget * 100) : null;
+    const barPct = pct !== null ? Math.min(100, pct) : 0;
+    const cls = pct < 70 ? 'bar-green' : pct < 100 ? 'bar-amber' : 'bar-red';
+    tr.innerHTML = `
+      <td>${formatWeekLabel(w, sun)}${isFutureRow ? ' <span style="font-size:10px;color:var(--text3)">(forecast)</span>' : ''}</td>
+      <td class="num">${totalBudget ? Math.round(totalBudget) + 'h' : '—'}</td>
+      <td class="num">${cumVal !== null ? Math.round(cumVal) + 'h' : '—'}</td>
+      <td class="num">${weeklyVal !== null ? Math.round(weeklyVal) + 'h' : '—'}</td>
+      <td class="num">${remVal !== null ? Math.round(remVal) + 'h' : '—'}</td>
+      <td class="num">${pct !== null ? `<div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${barPct}%"></div></div> <span style="color:var(--text3);font-size:11px">${pct}%</span>` : '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  // Fix header for burndown view
+  document.querySelector('thead tr').innerHTML = `
+    <th>Week</th>
+    <th class="num">Budget</th>
+    <th class="num">Cumulative</th>
+    <th class="num">This week</th>
+    <th class="num">Remaining</th>
+    <th class="num" style="width:120px">Burn %</th>
+  `;
+}
+
+function refreshData() {
+  const btn = document.getElementById('refresh-btn');
+  btn.textContent = '↻ Refreshing…';
+  btn.disabled = true;
+  loadData().finally(() => {
+    btn.textContent = '↻ Refresh';
+    btn.disabled = false;
+  });
+}
+
+// Init
+window.addEventListener('DOMContentLoaded', () => {
+  const token = localStorage.getItem('harvest_token');
+  const account = localStorage.getItem('harvest_account');
+  const forecastAccount = localStorage.getItem('harvest_forecast_account');
+  const projectId = localStorage.getItem('harvest_project_id');
+  if (token && account && forecastAccount) {
+    state.token = token;
+    state.accountId = account;
+    state.forecastAccountId = forecastAccount;
+    state.filterProjectId = projectId || null;
+    showApp();
+    loadData();
+  } else {
+    document.getElementById('auth-screen').style.display = 'block';
+  }
+});
+
+</script>
+</body>
+</html>
