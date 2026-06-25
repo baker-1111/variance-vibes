@@ -2,7 +2,7 @@
 Claude-Powered Loops — Runbook & Reference
 A collection of self-inspecting, self-correcting agentic loops built with the Claude API and Claude Code. Each loop follows the same pattern: inspect context → propose or create work → check itself → revise — with human-approval gates and guardrails for sensitive data baked in throughout.
 
-Table of Contents
+**Table of Contents**
 What's in this repo
 Setup
 Loop catalogue
@@ -41,13 +41,13 @@ A structured eval so you can measure improvement over time
 ├── evals/
 │   └── rubric.md             # Shared scoring rubric
 └── README.md                 # This file
-Setup
-Prerequisites
+**Setup**
+**Prerequisites**
 Claude Code CLI — npm install -g @anthropic-ai/claude-code — docs
 Anthropic API key — set in your environment: export ANTHROPIC_API_KEY=sk-ant-...
 Python 3.10+ — for eval scripts and the Slack sanitizer
 Node 18+ — for workflow scripts
-Install
+**Install**
 git clone <your-repo-url> claude-loops
 cd claude-loops
 pip install -r requirements.txt   # anthropic, rich, python-dotenv
